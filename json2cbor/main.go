@@ -1,22 +1,29 @@
 package main
 
 import (
-	"errors"
+	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	j2c "github.com/jbenet/go-json2cbor"
 )
 
-var usage = `json2cbor j2c - recode json to cbor
+var codec string
+var usageStr = `json2cbor j2c - recode json to cbor
 json2cbor c2j - recode cbor to json
-
-special:
-  json2cbor j2cs - recode json to cbor (using encoding/json)
 
 note: reads newline delimited json. unescaped newlines in
 json input may be a problem.
+
+OPTIONS:
 `
+
+func init() {
+	codecStr := strings.Join(j2c.Codecs, ", ")
+	flag.StringVar(&codec, "codec", "ugorji", "cbor codec to use: "+codecStr)
+	flag.Usage = usage
+}
 
 func main() {
 	if err := run(); err != nil {
@@ -25,21 +32,30 @@ func main() {
 	}
 }
 
+func usage() {
+	fmt.Fprintln(os.Stdout, usageStr)
+	flag.PrintDefaults()
+	os.Exit(0)
+}
+
 func run() error {
-	switch len(os.Args) {
+	flag.Parse()
+	args := flag.Args()
+
+	switch len(args) {
 	default:
-		return errors.New(usage)
-	case 2:
+		usage()
+		return nil
+	case 1:
 	}
 
-	switch os.Args[1] {
+	switch args[0] {
 	default:
-		return errors.New(usage)
-	case "j2cs":
-		return j2c.JsonToCborS(os.Stdout, os.Stdin)
+		usage()
+		return nil
 	case "j2c":
-		return j2c.JsonToCbor(os.Stdout, os.Stdin)
+		return j2c.JsonToCbor(codec, os.Stdout, os.Stdin)
 	case "c2j":
-		return j2c.CborToJson(os.Stdout, os.Stdin)
+		return j2c.CborToJson(codec, os.Stdout, os.Stdin)
 	}
 }
